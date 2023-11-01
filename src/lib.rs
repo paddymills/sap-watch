@@ -4,7 +4,6 @@
 //! SAP error pre-cogi watching and handling
 
 #[macro_use] extern crate anyhow;
-#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate serde;
 
 pub mod api;

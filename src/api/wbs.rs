@@ -9,11 +9,16 @@ lazy_static! {
     static ref LEGACY_WBS: Regex = Regex::new(r"S-(\d{7})-2-(\d{2})").expect("Failed to build LEGACY_WBS regex");
 }
 
+/// A type of SAP WBS element
 #[derive(Clone, Hash, PartialEq, PartialOrd, Deserialize)]
 pub enum Wbs {
+    /// No WBS element
     None,
+    /// Cost center WBS
     CostCenter { cc: u32 },
+    /// Hard dollar WBS
     Hd { job: String, id: u32 },
+    /// Legacy WBS (`S-{job}-2-{shipment:02}`)
     Legacy { job: String, shipment: u32 },
 }
 

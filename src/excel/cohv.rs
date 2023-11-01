@@ -1,84 +1,90 @@
 
+use calamine::DataType;
+
+use std::collections::HashMap;
+use std::path::PathBuf;
+
 use crate::api::{Order, OrderData};
+use super::excel::{XlsxTableReader, HeaderColumn};
 
-#[derive(Debug)]
-pub struct Header {
-    _type: usize,
 
-    order: usize,
-    mark:  usize,
-    qty:   usize,
-    wbs:   usize,
-    plant: usize,
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+enum CohvHeader {
+    Order,
+    Matl,
+    Qty,
+    Wbs,
+    Type,
+    Plant,
 }
 
-impl Default for Header {
-    fn default() -> Self {
-        // we are going to assume no index will be at 255
-        //  so then we can find an unmatched index
-        Self {
-            _type:  usize::MAX,
+impl HeaderColumn for CohvHeader {
+    type Row = Order;
 
-            order:  usize::MAX,
-            mark:   usize::MAX,
-            qty:    usize::MAX,
-            wbs:    usize::MAX,
-            plant:  usize::MAX,
+    fn column_name(&self) -> String {
+        use CohvHeader::*;
+    
+        match self {
+            Order => "Order",
+            Matl => "Material",
+            Qty => "Qty",
+            Wbs => "WBS Element",
+            Type => "Order Type",
+            Plant => "Plant"
+        }.into()
+    }
+
+    fn columns_to_match() -> Vec<Self> where Self: Sized {
+        vec![
+            CohvHeader::Order,
+            CohvHeader::Matl,
+            CohvHeader::Qty,
+            CohvHeader::Wbs,
+            CohvHeader::Type,
+            CohvHeader::Plant,
+        ]
+    }
+
+    fn match_header_column(column_text: &str) -> Option<Self>
+        where Self: Sized
+    {
+        match column_text {
+            "Order"                  => Some( Self::Order ),
+            "Material Number"        => Some( Self::Matl  ),
+            "Order quantity (GMEIN)" => Some( Self::Qty   ),
+            "WBS Element"            => Some( Self::Wbs   ),
+            "Order Type"             => Some( Self::Type  ),
+            "Plant"                  => Some( Self::Plant ),
+            _                        => None
         }
+    }
+
+    fn parse_row(header: &HashMap<Self, usize>, row: &[DataType]) -> anyhow::Result<Self::Row>
+        where Self: Sized
+    {
+        // TODO: handle parsing errors (get_string/get_int)
+        let order = row[*header.get(&Self::Order).unwrap()].get_string().ok_or( anyhow!("Failed to coerce order to String") )?.parse()?;
+
+        let matl  = row[*header.get(&Self::Matl).unwrap() ].get_string().ok_or( anyhow!("Failed to read Material as String") )?.into();
+        let qty   = row[*header.get(&Self::Qty).unwrap()  ].get_float() .ok_or( anyhow!("Failed to read qty as Float") )? as u32;
+        let wbs   = row[*header.get(&Self::Wbs).unwrap()  ].get_string().ok_or( anyhow!("Failed to read Wbs Element") )?.try_into()?;
+        let _type = row[*header.get(&Self::Type).unwrap() ].get_string().ok_or( anyhow!("Failed to read Order Type") )?;
+        let plant = row[*header.get(&Self::Plant).unwrap()].get_string().ok_or( anyhow!("Failed to read Plant") )?.into();
+
+        let data = OrderData { id: order, mark: matl, qty, wbs, plant };
+
+        Ok( Order::new(_type, data) )
     }
 }
 
-impl Header {
-    pub fn parse_row(&self, row: String) -> Order {
-        let split_row: Vec<&str> = row.split("|").map(|c| c.trim()).collect();
+/// parses a COHV excel file from a given export file path
+pub fn parse_cohv_xl(cohv_file: PathBuf) -> anyhow::Result<Vec<Order>> {
+    
+    let mut reader = XlsxTableReader::<CohvHeader>::new();
+    let vals = reader.read_file(cohv_file)?
+        .into_iter()
+        .filter_map(|r| r.ok())
+        .collect();
 
-        let data = OrderData {
-            id:    split_row[self.order].parse().unwrap(),
-            mark:  split_row[self.mark].into(),
-            qty:   split_row[self.qty].parse().unwrap(),
-            wbs:   split_row[self.wbs].try_into().unwrap(),
-            plant: split_row[self.plant].into(),
-        };
-
-        match split_row[self._type] {
-            "PP01" => Order::ProductionOrder(data),
-            "PR"   => Order::PlannedOrder(data),
-            _ => unreachable!()
-        }
-    }
-}
-
-impl TryFrom<String> for Header {
-    type Error = String;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let mut head = Header::default();
-
-        for (i, item) in value.split("|").enumerate() {
-            match item.trim() {
-                "Order Type"  => head._type = i,
-                "Order"       => head.order = i,
-                "Material"    => head.mark  = i,
-                "Target qty"  => head.qty   = i,
-                "WBS Element" => head.wbs   = i,
-                "Plant"       => head.plant = i,
-
-                _ => ()
-            }
-        }
-
-        // validate that all columns matched
-        let mut missing_columns = Vec::new();
-        if head._type == usize::MAX { missing_columns.push("`Order Type`" ); }
-        if head.order == usize::MAX { missing_columns.push("`Order`"      ); }
-        if head.mark  == usize::MAX { missing_columns.push("`Material`"   ); }
-        if head.qty   == usize::MAX { missing_columns.push("`Target Qty`" ); }
-        if head.wbs   == usize::MAX { missing_columns.push("`WBS Element`"); }
-        if head.plant == usize::MAX { missing_columns.push("`Plant`"      ); }
-        if missing_columns.len() > 0 {
-            return Err(format!("Failed to parse header: missing columns {:?}", missing_columns));
-        }
-
-        Ok(head)
-    }
+    Ok(vals)
 }

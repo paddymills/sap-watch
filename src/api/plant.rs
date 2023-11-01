@@ -1,4 +1,5 @@
 
+/// represents an SAP plant
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Plant {
     /// Lancaster (HS01)
