@@ -1,0 +1,19 @@
+[package]
+name = "sap-watch"
+description = "Watcher for SAP confirmations"
+authors = ["Patrick Miller"]
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = { version = "4.4.6", features = ["derive", "cargo"] }
+ftlog = "0.2.10"
+log = "0.4.20"
+serde = { version = "1.0.188", features = ["derive"] }
+surrealdb = { version = "1.0.0", features = ["protocol-http"] }
+tiberius = { version = "0.12.2", features = ["sql-browser-tokio", "integrated-auth-gssapi"] }
+time = "0.3.29"
+tokio = { version = "1.33.0", features = ["rt-multi-thread", "sync"] }
+tokio-util = { version = "0.7.9", features = ["compat"] }
