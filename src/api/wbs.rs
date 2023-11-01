@@ -1,7 +1,7 @@
 
 use std::fmt::{Display, Debug};
 use regex::Regex;
-use serde::{Deserializer, de::Error, Serialize};
+use serde::{Deserializer, de::Error, Serialize, Deserialize};
 
 use std::sync::LazyLock;
 
@@ -10,7 +10,7 @@ static HD_WBS          : LazyLock<Regex> = LazyLock::new(|| Regex::new(r"D-(\d{7
 static LEGACY_WBS      : LazyLock<Regex> = LazyLock::new(|| Regex::new(r"S-(\d{7})-2-(\d{2})").expect("Failed to build LEGACY_WBS regex") );
 
 /// A type of SAP WBS element
-#[derive(Clone, Hash, PartialEq, PartialOrd, Deserialize)]
+#[derive(Clone, Hash, PartialEq, PartialOrd)]
 pub enum Wbs {
     /// No WBS element
     None,
@@ -23,6 +23,7 @@ pub enum Wbs {
 }
 
 impl Wbs {
+    /// update the WBS id for an HD WBS
     pub fn set_id(mut self, new_id: u32) {
         match self {
             Self::Hd { job: _, ref mut id } => *id = new_id,
@@ -33,6 +34,7 @@ impl Wbs {
         }
     }
 
+    /// convert a WBS element into an HD WBS
     pub fn into_hd_wbs(self, id: u32) -> Self {
         match self {
             Self::Hd { .. } => self,
@@ -43,13 +45,6 @@ impl Wbs {
         }
         
     }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Wbs, D::Error>
-        where D: Deserializer<'de>
-    {
-        let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
-        Wbs::try_from(s).map_err(D::Error::custom)
-    }
 }
 
 impl Serialize for Wbs {
@@ -57,6 +52,15 @@ impl Serialize for Wbs {
         where
             S: serde::Serializer {
         serializer.collect_str(self)
+    }
+}
+
+impl<'de> Deserialize<'de> for Wbs {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de> {
+        let s: &str = serde::de::Deserialize::deserialize(deserializer)?;
+        Wbs::try_from(s).map_err(D::Error::custom)
     }
 }
 
