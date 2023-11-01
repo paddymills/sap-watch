@@ -3030,7 +3030,6 @@ dependencies = [
  "calamine",
  "clap 4.4.6",
  "ftlog",
- "lazy_static",
  "log",
  "regex",
  "serde",

@@ -1,4 +1,6 @@
 
+#![feature(lazy_cell)]
+
 #![warn(missing_docs)]
 
 //! SAP error pre-cogi watching and handling

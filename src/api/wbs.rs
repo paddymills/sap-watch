@@ -3,11 +3,11 @@ use std::fmt::{Display, Debug};
 use regex::Regex;
 use serde::{Deserializer, de::Error, Serialize};
 
-lazy_static! {
-    static ref COST_CENTER_WBS: Regex = Regex::new(r"S-.*-2-(2\d{3})").expect("Failed to build COST_CENTER_WBS regex");
-    static ref HD_WBS: Regex = Regex::new(r"D-(\d{7})-(\d{5})").expect("Failed to build HD_WBS regex");
-    static ref LEGACY_WBS: Regex = Regex::new(r"S-(\d{7})-2-(\d{2})").expect("Failed to build LEGACY_WBS regex");
-}
+use std::sync::LazyLock;
+
+static COST_CENTER_WBS : LazyLock<Regex> = LazyLock::new(|| Regex::new(r"S-.*-2-(2\d{3})").expect("Failed to build COST_CENTER_WBS regex") );
+static HD_WBS          : LazyLock<Regex> = LazyLock::new(|| Regex::new(r"D-(\d{7})-(\d{5})").expect("Failed to build HD_WBS regex") );
+static LEGACY_WBS      : LazyLock<Regex> = LazyLock::new(|| Regex::new(r"S-(\d{7})-2-(\d{2})").expect("Failed to build LEGACY_WBS regex") );
 
 /// A type of SAP WBS element
 #[derive(Clone, Hash, PartialEq, PartialOrd, Deserialize)]
