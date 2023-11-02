@@ -13,13 +13,13 @@ use calamine::{Reader, open_workbook, Xlsx, DataType};
 
 /// A reader for a .xlsx file that parses a table
 #[derive(Debug, Default)]
-pub struct XlsxTableReader<H: HeaderColumn> {
+pub struct XlsxTableReader<H: Header> {
     header: HashMap<H, usize>
 }
 
 impl<H> XlsxTableReader<H>
     where
-        H: HeaderColumn + Eq + Hash
+        H: Header + Eq + Hash
 {
 
     /// create a new reader
@@ -90,8 +90,8 @@ impl<H> XlsxTableReader<H>
     }
 }
 
-/// a trait for a column in the header to aid the parser
-pub trait HeaderColumn {
+/// Header parser to aid the sheet parser
+pub trait Header {
     /// type of Row that is returned by the parser during `read_file`
     type Row;
 

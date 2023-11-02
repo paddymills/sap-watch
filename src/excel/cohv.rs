@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::api::{Order, OrderData};
-use super::excel::{XlsxTableReader, HeaderColumn};
+use super::excel::{XlsxTableReader, Header};
 
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -22,7 +22,7 @@ enum CohvHeader {
     Plant,
 }
 
-impl HeaderColumn for CohvHeader {
+impl Header for CohvHeader {
     type Row = Order;
 
     fn column_name(&self) -> String {
