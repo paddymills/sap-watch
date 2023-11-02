@@ -1,4 +1,6 @@
 
+//! Excel file parsing framework
+
 use std::{
     collections::HashMap,
     path::PathBuf,
@@ -9,6 +11,7 @@ use calamine::{Reader, open_workbook, Xlsx, DataType};
 
 // TODO: use serde for this.
 
+/// A reader for a .xlsx file that parses a table
 #[derive(Debug, Default)]
 pub struct XlsxTableReader<H: HeaderColumn> {
     header: HashMap<H, usize>
@@ -18,9 +21,12 @@ impl<H> XlsxTableReader<H>
     where
         H: HeaderColumn + Eq + Hash
 {
+
+    /// create a new reader
     pub fn new() -> Self {
         Self {
             header: HashMap::new(),
+            // TODO: hold not_matched columns for header parsing
         }
     }
 
@@ -41,6 +47,8 @@ impl<H> XlsxTableReader<H>
         self.not_matched_header().is_none()
     }
 
+    /// pares the header row of the table
+    // TODO: support multiple rows
     pub fn parse_header(&mut self, row: &[DataType]) {
         for (i, col) in row.iter().enumerate() {
             if let Some(key) = H::match_header_column(col.get_string().unwrap()) {
@@ -53,6 +61,7 @@ impl<H> XlsxTableReader<H>
         }
     }
 
+    /// read an excel file, parsing the header and returning the parsed rows
     pub fn read_file(&mut self, path: PathBuf) -> anyhow::Result<Vec<anyhow::Result<H::Row>>> {
         let mut wb: Xlsx<_> = match open_workbook(path) {
             Ok(wb) => wb,
@@ -81,11 +90,17 @@ impl<H> XlsxTableReader<H>
     }
 }
 
+/// a trait for a column in the header to aid the parser
 pub trait HeaderColumn {
+    /// type of Row that is returned by the parser during `read_file`
     type Row;
 
+    /// returns the name of the column
     fn column_name(&self) -> String;
+    /// tries to match a column, returns None if nothing matches
     fn match_header_column(column_text: &str) -> Option<Self> where Self: Sized;
+    /// get a list of the columns to match in the header
     fn columns_to_match() -> Vec<Self> where Self: Sized;
+    /// parse a data row with the parsed colum
     fn parse_row(header: &HashMap<Self, usize>, row: &[DataType]) -> anyhow::Result<Self::Row> where Self: Sized;
 }

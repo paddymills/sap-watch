@@ -15,11 +15,27 @@ pub enum Wbs {
     /// No WBS element
     None,
     /// Cost center WBS
-    CostCenter { cc: u32 },
+    CostCenter {
+        /// Cost Center
+        cc: u32
+    },
     /// Hard dollar WBS
-    Hd { job: String, id: u32 },
+    Hd {
+        /// Job number
+        // TODO: move to number
+        job: String,
+        /// 5-digit Hard Dollar line ID
+        id: u32
+    },
     /// Legacy WBS (`S-{job}-2-{shipment:02}`)
-    Legacy { job: String, shipment: u32 },
+    Legacy { 
+        /// Job number
+        // TODO: move to number
+        job: String,
+        /// Shipment (0-99)
+        // TODO: can use a u8 for this
+        shipment: u32
+    },
 }
 
 impl Wbs {

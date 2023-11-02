@@ -1,4 +1,8 @@
 
+//! parsing for SAP transaction COHV
+//! 
+//! COOIS might also work since they are similar
+
 use calamine::DataType;
 
 use std::collections::HashMap;
