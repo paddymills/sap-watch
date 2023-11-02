@@ -5,7 +5,7 @@
 
 use calamine::DataType;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 use std::path::PathBuf;
 
 use crate::api::{Order, OrderData};
@@ -24,19 +24,6 @@ enum CohvHeader {
 
 impl Header for CohvHeader {
     type Row = Order;
-
-    fn column_name(&self) -> String {
-        use CohvHeader::*;
-    
-        match self {
-            Order => "Order",
-            Matl => "Material",
-            Qty => "Qty",
-            Wbs => "WBS Element",
-            Type => "Order Type",
-            Plant => "Plant"
-        }.into()
-    }
 
     fn columns_to_match() -> Vec<Self> where Self: Sized {
         vec![
@@ -91,4 +78,21 @@ pub fn parse_cohv_xl(cohv_file: PathBuf) -> anyhow::Result<Vec<Order>> {
         .collect();
 
     Ok(vals)
+}
+
+impl Display for CohvHeader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use CohvHeader::*;
+    
+        let name = match self {
+            Order => "Order",
+            Matl => "Material",
+            Qty => "Qty",
+            Wbs => "WBS Element",
+            Type => "Order Type",
+            Plant => "Plant"
+        };
+
+        write!(f, "{}", name)
+    }
 }
