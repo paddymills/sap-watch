@@ -3,10 +3,12 @@
 
 use std::{
     collections::HashMap,
-    path::PathBuf,
     hash::Hash,
+    fmt::Display,
+    path::PathBuf,
 };
 
+use itertools::Itertools;
 use calamine::{Reader, open_workbook, Xlsx, DataType};
 
 // TODO: use serde for this.
@@ -14,51 +16,54 @@ use calamine::{Reader, open_workbook, Xlsx, DataType};
 /// A reader for a .xlsx file that parses a table
 #[derive(Debug, Default)]
 pub struct XlsxTableReader<H: Header> {
-    header: HashMap<H, usize>
+    header: HashMap<H, usize>,
 }
 
 impl<H> XlsxTableReader<H>
     where
-        H: Header + Eq + Hash
+        H: Header + Eq + Hash + Display
 {
 
     /// create a new reader
     pub fn new() -> Self {
         Self {
             header: HashMap::new(),
-            // TODO: hold not_matched columns for header parsing
         }
-    }
-
-    fn not_matched_header(&self) -> Option<Vec<String>> {
-        let not_matched: Vec<String> = H::columns_to_match()
-            .into_iter()
-            .filter(|col| !self.header.contains_key(col))
-            .map(|h| h.column_name())
-            .collect();
-
-        match not_matched.len() {
-            0 => None,
-            _ => Some(not_matched)
-        }
-    }
-
-    fn is_header_matched(&self) -> bool {
-        self.not_matched_header().is_none()
     }
 
     /// pares the header row of the table
-    // TODO: support multiple rows
+    // TODO: support multiple row headers
     pub fn parse_header(&mut self, row: &[DataType]) {
         for (i, col) in row.iter().enumerate() {
             if let Some(key) = H::match_header_column(col.get_string().unwrap()) {
                 self.header.insert(key, i);
             }
 
-            if self.is_header_matched() {
+            if H::columns_to_match()
+                .iter()
+                .all(|h| self.header.contains_key(h)) {
                 break;
             }
         }
+    }
+
+    fn is_header_matched(&self) -> bool {
+        // tests if all columns have been successfully matched
+        // different base impl from `missing_columns()` becasue it short circuits
+
+        for col in H::columns_to_match() {
+            if !self.header.contains_key(&col) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn missing_columns(&self) -> impl Iterator<Item=H> + '_ {
+        H::columns_to_match()
+            .into_iter()
+            .filter(|h| !self.header.contains_key(h))
     }
 
     /// read an excel file, parsing the header and returning the parsed rows
@@ -73,10 +78,12 @@ impl<H> XlsxTableReader<H>
 
         self.parse_header(rows.next().unwrap());
 
-        // validate header matched 
-        if let Some(cols) = self.not_matched_header() {
+        if self.is_header_matched() {
             // TODO: specify which header columns not matched
-            return Err( anyhow!("Not all header columns matched. Missing columns: `{}`", cols.join(", ")) );
+            return Err(
+                anyhow!( "Not all header columns matched. Missing columns: `{}`",
+                    self.missing_columns().join(", ") )
+                );
         }
 
         let mut results = Vec::new();
@@ -95,8 +102,6 @@ pub trait Header {
     /// type of Row that is returned by the parser during `read_file`
     type Row;
 
-    /// returns the name of the column
-    fn column_name(&self) -> String;
     /// tries to match a column, returns None if nothing matches
     fn match_header_column(column_text: &str) -> Option<Self> where Self: Sized;
     /// get a list of the columns to match in the header
