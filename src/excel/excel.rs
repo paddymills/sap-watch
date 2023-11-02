@@ -79,11 +79,7 @@ impl<H> XlsxTableReader<H>
         self.parse_header(rows.next().unwrap());
 
         if self.is_header_matched() {
-            // TODO: specify which header columns not matched
-            return Err(
-                anyhow!( "Not all header columns matched. Missing columns: `{}`",
-                    self.missing_columns().join(", ") )
-                );
+            return Err( anyhow!("Header did not match all columns: `{}`", self.missing_columns().join(", ")) );
         }
 
         let mut results = Vec::new();
